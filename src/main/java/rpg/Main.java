@@ -10,6 +10,14 @@ import rpg.decorator.Invisibility;
 import rpg.decorator.Telepathy;
 import rpg.settings.GameSettings;
 
+// Imports Command
+import rpg.command.Fighter;
+import rpg.command.CommandInvoker;
+import rpg.command.AttackCommand;
+import rpg.command.DefendCommand;
+import rpg.command.UsePowerCommand;
+import rpg.command.BattleEngine;
+
 public class Main {
 
     public static void main(String[] args) {
@@ -47,7 +55,6 @@ public class Main {
                     .setAgility(50)
                     .setIntelligence(50)
                     .build();
-            // ne devrait pas passer
             line("Construit (unexpected): " + tooStrong.getDescription());
         } catch (IllegalArgumentException ex) {
             line("[OK attendu] Échec de build: " + ex.getMessage());
@@ -57,11 +64,9 @@ public class Main {
         // 2) DÉCORATEURS (CAPACITÉS)
         // ===========================
         title("Ajout de capacités (Decorator)");
-        // empilement possible : Télépathie puis Résistance au feu
         CharacterProfile fireTelepathyHero = new FireResistance(new Telepathy(hero));
         CharacterProfile invisibleVillain  = new Invisibility(villain);
 
-        // Description + PL reflètent le décorateur (bonus fixes)
         line(fireTelepathyHero.getDescription() + " | PL=" + fireTelepathyHero.getPowerLevel());
         line(invisibleVillain.getDescription()  + " | PL=" + invisibleVillain.getPowerLevel());
 
@@ -70,9 +75,9 @@ public class Main {
         // ===========================
         title("DAO (en mémoire)");
         CharacterDao dao = new CharacterDao();
-        dao.save(hero);                 // stocke par nom exact
+        dao.save(hero);
         dao.save(villain);
-        dao.save(fireTelepathyHero);    // on peut stocker n'importe quel CharacterProfile
+        dao.save(fireTelepathyHero);
         dao.save(invisibleVillain);
 
         line("FindAll (nom -> PL)");
@@ -93,13 +98,12 @@ public class Main {
 
         line("Puissance totale de l’équipe (somme des PL) : " + party.getTotalPower());
 
-        line("Tri par puissance décroissante (n'affecte pas la liste interne) :");
+        line("Tri par puissance décroissante :");
         party.sortByPowerDesc().forEach(c -> line(" - " + c.getName() + " -> " + c.getPowerLevel()));
 
         line("Tri par nom (A→Z) :");
         party.sortByNameAsc().forEach(c -> line(" - " + c.getName()));
 
-        // Démonstration de removeByName (insensible à la casse)
         boolean removed = party.removeByName("villain");
         line("removeByName(\"villain\") -> " + removed);
         line("Membres après suppression :");
@@ -109,37 +113,65 @@ public class Main {
         // 5) VALIDATION (GameSettings)
         // ===========================
         title("Validation (contraintes GameSettings)");
-        // sur objets "nus"
         line(hero.getName()   + " valide ? " + GameSettings.getInstance().isValid(hero));
         line(villain.getName()+ " valide ? " + GameSettings.getInstance().isValid(villain));
-
-        // sur objets décorés (les bonus de PL comptent dans la validation)
         line("fireTelepathyHero valide ? " + GameSettings.getInstance().isValid(fireTelepathyHero));
         line("invisibleVillain  valide ? " + GameSettings.getInstance().isValid(invisibleVillain));
 
         // ===========================
-        // 6) COMBAT DÉMO
+        // 6) COMBAT DÉMO (simple par PL)
         // ===========================
         title("Combat (démo simple)");
-        // Villain a été retiré de la Party ci-dessus, mais l’objet existe toujours ici
         line("Villain vs Hero");
         line(resolveFight(villain, hero));
         line("Villain PL=" + villain.getPowerLevel());
         line("Hero PL=" + hero.getPowerLevel());
 
         // ===========================
-        // 7) (OPTION) TESTER L'IMMUTABILITÉ DES VUES
+        // 6.bis) ACTIONS (Command)
+        // ===========================
+        title("Actions (Command)");
+
+        Fighter fHero    = new Fighter(fireTelepathyHero);
+        Fighter fVillain = new Fighter(invisibleVillain);
+
+        CommandInvoker invoker = new CommandInvoker();
+        invoker.execute(new DefendCommand(fVillain));
+        invoker.execute(new AttackCommand(fHero, fVillain));
+        invoker.execute(new UsePowerCommand(
+                fHero, p -> new FireResistance(p), "Résistance au feu (stack)"
+        ));
+        invoker.execute(new AttackCommand(fVillain, fHero));
+        invoker.execute(new UsePowerCommand(
+                fVillain, p -> new Telepathy(p), "Télépathie"
+        ));
+        invoker.execute(new AttackCommand(fHero, fVillain));
+
+        line("État final : " + fHero.getName() + " HP=" + fHero.getHp()
+                + " | " + fVillain.getName() + " HP=" + fVillain.getHp());
+
+        // ===========================
+        // 7) IMMUTABILITÉ DES VUES
         // ===========================
         title("Immutabilité des vues (optionnel)");
         try {
-            party.getMembers().add(hero); // doit lever UnsupportedOperationException
+            party.getMembers().add(hero);
             line("[unexpected] la liste est modifiable !");
         } catch (UnsupportedOperationException ex) {
             line("[OK attendu] getMembers() retourne une vue immuable.");
         }
+
+        // ===========================
+        // 8) COMBAT AVANCÉ (BattleEngine + Replay)
+        // ===========================
+        title("Combat avancé (BattleEngine + historique/replay)");
+
+        BattleEngine engine = new BattleEngine(fireTelepathyHero, invisibleVillain);
+        engine.runBattle();      // exécution du combat
+        engine.replayBattle();   // replay de l’historique
     }
 
-    // --------- Helpers d'affichage (lisibilité console) ---------
+    // --------- Helpers d'affichage ---------
 
     private static void title(String text) {
         System.out.println("\n=== " + text + " ===");
@@ -149,7 +181,7 @@ public class Main {
         System.out.println(text);
     }
 
-    // Diff simple : gagnant par PL (égalité possible)
+    // Diff simple : gagnant par PL
     private static String resolveFight(CharacterProfile a, CharacterProfile b) {
         int diff = a.getPowerLevel() - b.getPowerLevel();
         if (diff == 0) return "Égalité entre " + a.getName() + " et " + b.getName();
