@@ -1,5 +1,8 @@
 package rpg.core;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 
 
 /**
@@ -57,5 +60,17 @@ public class Party {
      */
     public int getTotalPower() {
         return members.stream().mapToInt(Character::getPowerLevel).sum();
+    }
+
+    public int getStrength() {
+        return members.stream().mapToInt(Character::getStrength).sum();
+    }
+
+    public int getAgility() {
+        return members.stream().mapToInt(Character::getAgility).sum();
+    }
+
+    public int getIntelligence() {
+        return members.stream().mapToInt(Character::getIntelligence).sum();
     }
 }

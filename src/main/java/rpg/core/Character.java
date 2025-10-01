@@ -29,16 +29,20 @@ public class Character implements CharacterProfile {
 
     // --- Accesseurs simples : lecture seule de l'état interne ---
 
+    @Override
     public String getName() { return name; }
 
+    @Override
     public int getStrength() {
         return strength;
     }
 
+    @Override
     public int getAgility() {
         return agility;
     }
 
+    @Override
     public int getIntelligence() {
         return intelligence;
     }
