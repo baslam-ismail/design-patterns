@@ -1,6 +1,13 @@
 package rpg;
 
 import rpg.builder.CharacterBuilder;
+import rpg.command.AttackCommand;
+import rpg.command.BattleEngine;
+import rpg.command.CommandInvoker;
+import rpg.command.DefendCommand;
+import rpg.command.Fighter;
+import rpg.command.UsePowerCommand;
+import rpg.core.Army;
 import rpg.core.Character;
 import rpg.core.CharacterProfile;
 import rpg.core.Party;
@@ -13,14 +20,6 @@ import rpg.validation.CapabilitiesCountValidator;
 import rpg.validation.MaxStatPointsValidator;
 import rpg.validation.NameNotBlankValidator;
 import rpg.validation.ValidationHandler;
-
-// Imports Command
-import rpg.command.Fighter;
-import rpg.command.CommandInvoker;
-import rpg.command.AttackCommand;
-import rpg.command.DefendCommand;
-import rpg.command.UsePowerCommand;
-import rpg.command.BattleEngine;
 
 public class Main {
 
@@ -130,6 +129,45 @@ public class Main {
         line("removeByName(\"villain\") -> " + removed);
         line("Membres après suppression :");
         party.getMembers().forEach(c -> line(" - " + c.getName()));
+
+        // ===========================
+        //  ARMEE (GROUPES DE PARTY)
+        // ===========================
+
+        title("Armée (groupes de Party)");
+        Party party2 = new Party();
+        Character strongHero = new CharacterBuilder()
+                .setName("StrongHero")
+                .setStrength(15)
+                .setAgility(10)
+                .setIntelligence(5)
+                .build(); // somme = 30
+        party2.add(strongHero);
+        party2.add(new CharacterBuilder()
+                .setName("SmartHero")
+                .setStrength(5)
+                .setAgility(5)
+                .setIntelligence(15)
+                .build()); // somme = 25
+        
+        line("Party 1 (total PL=" + party.getTotalPower() + "):");
+        party.getMembers().forEach(c -> line(" - " + c.getName() +
+                " (PL=" + c.getPowerLevel() + ")"));
+        
+        line("Party 2 (total PL=" + party2.getTotalPower() + "):");
+        party2.getMembers().forEach(c -> line(" - " + c.getName()
+                + " (PL=" + c.getPowerLevel() + ")"));
+        
+        Army army = new Army("L'armée des héros");
+        army.addParty(party);
+        army.addParty(party2);
+
+        line("Armée: " + army.getName() + " (total PL=" + army.getPowerLevel() + ")");
+        army.getParties().forEach(p -> {
+            line(" Party (total PL=" + p.getTotalPower() + "):");
+            p.getMembers().forEach(c -> line("  - " + c.getName()
+                    + " (PL=" + c.getPowerLevel() + ")"));
+        });
 
         // ===========================
         // 5) VALIDATION (GameSettings)

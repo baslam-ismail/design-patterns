@@ -15,6 +15,10 @@ public class Army implements CharacterProfile {
         parties.add(party);
     }
 
+    public List<Party> getParties() {
+        return this.parties;
+    }
+
     @Override
     public String getName() {
         return name;
