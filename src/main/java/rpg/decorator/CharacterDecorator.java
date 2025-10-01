@@ -19,8 +19,10 @@ public abstract class CharacterDecorator implements CharacterProfile {
         this.decoratedCharacter = decoratedCharacter;
     }
 
-    // --- Délégations par défaut : à surcharger dans les décorateurs concrets ---
+    /** Permet de dérouler la chaîne de décorateurs (utile pour la validation). */
+    public CharacterProfile getDecorated() { return decoratedCharacter; }
 
+    // --- Délégations par défaut : à surcharger dans les décorateurs concrets ---
     @Override public String getName() { return decoratedCharacter.getName(); }
 
     @Override public int getStrength() { return decoratedCharacter.getStrength(); }

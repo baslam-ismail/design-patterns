@@ -9,6 +9,10 @@ import rpg.decorator.FireResistance;
 import rpg.decorator.Invisibility;
 import rpg.decorator.Telepathy;
 import rpg.settings.GameSettings;
+import rpg.validation.CapabilitiesCountValidator;
+import rpg.validation.MaxStatPointsValidator;
+import rpg.validation.NameNotBlankValidator;
+import rpg.validation.ValidationHandler;
 
 public class Main {
 
@@ -64,6 +68,24 @@ public class Main {
         // Description + PL reflètent le décorateur (bonus fixes)
         line(fireTelepathyHero.getDescription() + " | PL=" + fireTelepathyHero.getPowerLevel());
         line(invisibleVillain.getDescription()  + " | PL=" + invisibleVillain.getPowerLevel());
+
+        // Chaîne de validation (US 2.3 – Chain of Responsibility)
+        //    Chaque maillon applique une règle puis passe au suivant.
+        //    -> Nom non vide -> Total de points <= max -> Au plus 2 capacités empilées
+        try {
+            ValidationHandler chain = new NameNotBlankValidator();
+            chain.linkWith(new MaxStatPointsValidator())
+                    .linkWith(new CapabilitiesCountValidator(2)); // limite arbitraire: 2 pouvoirs max
+
+            // On valide un perso nu et des persos décorés
+            chain.validate(hero);
+            chain.validate(fireTelepathyHero);
+            chain.validate(invisibleVillain);
+            System.out.println("Validation (chaîne) OK pour: hero, fireTelepathyHero, invisibleVillain");
+        } catch (IllegalArgumentException ex) {
+            // Si une règle échoue, on affiche le message lisible
+            System.out.println("[VALIDATION KO] " + ex.getMessage());
+        }
 
         // ===========================
         // 3) DAO (STOCKAGE EN MÉMOIRE)
