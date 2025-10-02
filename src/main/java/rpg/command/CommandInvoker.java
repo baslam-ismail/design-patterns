@@ -14,12 +14,14 @@ public class CommandInvoker {
         String entry = command.execute();
         history.add(command);
         log.add(entry);
-        System.out.println(entry);
     }
 
     public List<String> getLog() { return List.copyOf(log); }
     public List<Command> getHistory() { return List.copyOf(history); }
 
+    public void note(String line) { log.add(line); }
+
+    
     public void clear() {
         history.clear();
         log.clear();

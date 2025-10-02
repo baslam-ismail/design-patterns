@@ -1,68 +1,100 @@
 package rpg.command;
 
-import java.util.Random;
 import rpg.core.CharacterProfile;
-import rpg.decorator.Invisibility;
-import rpg.decorator.Telepathy;
 
-/**
- * Moteur de combat simple : deux fighters s'affrontent jusqu'à K.O.
- */
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+/** Moteur de combat basé Command + historique. */
 public class BattleEngine {
-    private final Fighter f1;
-    private final Fighter f2;
+    private final Fighter f1, f2;
+    private final FighterRegistry reg = new FighterRegistry();
     private final CommandInvoker invoker = new CommandInvoker();
-    private final Random random = new Random();
+    private final Random rnd = new Random();
 
-    public BattleEngine(CharacterProfile c1, CharacterProfile c2) {
-        this.f1 = new Fighter(c1);
-        this.f2 = new Fighter(c2);
+    public BattleEngine(CharacterProfile a, CharacterProfile b) {
+        this.f1 = new Fighter(a); this.f2 = new Fighter(b);
+        reg.put(f1.getName(), f1);
+        reg.put(f2.getName(), f2);
     }
 
     public void runBattle() {
-        System.out.println("\n=== Combat : " + f1.getName() + " vs " + f2.getName() + " ===");
-        int round = 1;
+        invoker.note(String.format("=== Combat : %s vs %s ===", f1.getName(), f2.getName()));
+        int round = 1, maxRounds = 200;
 
-        while (f1.isAlive() && f2.isAlive()) {
-            System.out.println("\n--- Tour " + round + " ---");
+        while (f1.isAlive() && f2.isAlive() && round <= maxRounds) {
+            invoker.note(String.format("-- Tour %d --", round));
 
-            // Tour du Fighter 1
             takeTurn(f1, f2);
-
             if (!f2.isAlive()) break;
 
-            // Tour du Fighter 2
             takeTurn(f2, f1);
+            if (!f1.isAlive()) break;
 
             round++;
         }
 
-        // Résultat final
         if (f1.isAlive() && !f2.isAlive()) {
-            System.out.println(">>> " + f1.getName() + " est vainqueur !");
+            invoker.note(">> " + f1.getName() + " est vainqueur !");
         } else if (!f1.isAlive() && f2.isAlive()) {
-            System.out.println(">>> " + f2.getName() + " est vainqueur !");
+            invoker.note(">> " + f2.getName() + " est vainqueur !");
+        } else if (round > maxRounds) {
+            invoker.note(">> Match arrêté (limite de rounds)");
         } else {
-            System.out.println(">>> Match nul (KO simultané)");
+            invoker.note(">> Match nul (K.O. simultané)");
         }
     }
 
+
+
     private void takeTurn(Fighter actor, Fighter opponent) {
-        int action = random.nextInt(3); // 0=attaque,1=defense,2=pouvoir
+        int action = rnd.nextInt(3); // 0 attaque, 1 défense, 2 pouvoir
         switch (action) {
-            case 0 -> invoker.execute(new AttackCommand(actor, opponent));
-            case 1 -> invoker.execute(new DefendCommand(actor));
+            case 0 -> invoker.execute(new AttackByName(actor.getName(), opponent.getName(), reg));
+            case 1 -> invoker.execute(new DefendByName(actor.getName(), reg));
             case 2 -> {
-                if (random.nextBoolean()) {
-                    invoker.execute(new UsePowerCommand(actor, p -> new Invisibility(p), "Invisibilité"));
-                } else {
-                    invoker.execute(new UsePowerCommand(actor, p -> new Telepathy(p), "Télépathie"));
-                }
+                if (rnd.nextBoolean())
+                    invoker.execute(new UsePowerByName(actor.getName(), "invisibility", reg));
+                else
+                    invoker.execute(new UsePowerByName(actor.getName(), "telepathy", reg));
             }
         }
     }
 
-    public void replayBattle() {
-        invoker.replay();
+
+    /** @return l'invoker contenant history+log (session d'enregistrement). */
+    public CommandInvoker getInvoker() { return invoker; }
+
+    /** Rejoue l'historique sur de NOUVEAUX Fighters (profils remis à neuf). */
+    public static List<String> replayOnNewFighters(
+            List<Command> history,
+            String originalNameA, CharacterProfile profileA,
+            String originalNameB, CharacterProfile profileB
+    ) {
+        CommandInvoker invoker = new CommandInvoker();
+        FighterRegistry reg    = new FighterRegistry();
+
+        // <<< mêmes CLÉS que dans l'historique, mais NOUVEAUX fighters
+        reg.put(originalNameA, new Fighter(profileA));
+        reg.put(originalNameB, new Fighter(profileB));
+
+        List<String> out = new ArrayList<>();
+        out.add(String.format("=== Replay : %s vs %s ===", originalNameA, originalNameB));
+
+        for (Command c : history) {
+            c.rebind(reg, invoker);           // brancher sur le NOUVEAU contexte
+            String line = c.execute();        // aucune écriture console interne
+            invoker.note(line);               // garder la trace
+            out.add(line);
+        }
+        return out;
     }
+
+    // Helpers pour extraire les champs (getters package-private).
+    private static String oldAtt(AttackByName a){ try{ var f=AttackByName.class.getDeclaredField("attackerName"); f.setAccessible(true); return (String)f.get(a);}catch(Exception e){throw new RuntimeException(e);} }
+    private static String oldDef(AttackByName a){ try{ var f=AttackByName.class.getDeclaredField("defenderName"); f.setAccessible(true); return (String)f.get(a);}catch(Exception e){throw new RuntimeException(e);} }
+    private static String oldName(DefendByName d){ try{ var f=DefendByName.class.getDeclaredField("name"); f.setAccessible(true); return (String)f.get(d);}catch(Exception e){throw new RuntimeException(e);} }
+    private static String oldTarget(UsePowerByName u){ try{ var f=UsePowerByName.class.getDeclaredField("name"); f.setAccessible(true); return (String)f.get(u);}catch(Exception e){throw new RuntimeException(e);} }
+    private static String oldPower(UsePowerByName u){ try{ var f=UsePowerByName.class.getDeclaredField("power"); f.setAccessible(true); return (String)f.get(u);}catch(Exception e){throw new RuntimeException(e);} }
 }
