@@ -1,14 +1,32 @@
 package rpg.core;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * Groupe de personnages (interface) avec opérations de base.
  * Utilise CharacterProfile pour accepter aussi les décorateurs.
  */
-public class Party {
+public class Party implements CharacterProfile {
     private final List<CharacterProfile> members = new ArrayList<>();
+    private final String name;
+
+    public Party(String name) {
+        this.name = Objects.requireNonNull(name, "name must not be null");
+    }
+
+    @Override
+    public String getName() { return this.name; }
+    @Override
+    public String getDescription() {
+        return String.format("Groupe '%s' avec %d membre(s)", this.name, this.members.size());
+    }
+    @Override
+    public int getPowerLevel() { return getTotalPower(); }
 
     /** Ajoute un personnage (refus des valeurs null). */
     public void add(CharacterProfile character) {
@@ -44,7 +62,10 @@ public class Party {
                 .collect(Collectors.toUnmodifiableList());
     }
 
+    @Override
     public int getStrength()      { return members.stream().mapToInt(CharacterProfile::getStrength).sum(); }
+    @Override
     public int getAgility()       { return members.stream().mapToInt(CharacterProfile::getAgility).sum(); }
+    @Override
     public int getIntelligence()  { return members.stream().mapToInt(CharacterProfile::getIntelligence).sum(); }
 }

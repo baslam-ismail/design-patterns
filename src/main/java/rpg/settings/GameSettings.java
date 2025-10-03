@@ -9,6 +9,9 @@ import rpg.core.CharacterProfile;
  *
  */
 public class GameSettings {
+    public static final int FIRE_RESISTANCE_BONUS = 30;
+    public static final int INVISIBILITY_BONUS = 25;
+    public static final int TELEPATHY_BONUS = 30;
 
     /** Instance unique (initialisée au chargement de la classe). */
     private static final  GameSettings INSTANCE = new GameSettings();

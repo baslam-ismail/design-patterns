@@ -19,6 +19,15 @@ public abstract class CharacterDecorator implements CharacterProfile {
         this.decoratedCharacter = decoratedCharacter;
     }
 
+    public int countCapabilities(CharacterProfile character) {
+    int count = 0;
+    while (character instanceof CharacterDecorator) {
+        count++;
+        character = ((CharacterDecorator) character).getDecorated();
+    }
+    return count;
+}
+
     /** Permet de dérouler la chaîne de décorateurs (utile pour la validation). */
     public CharacterProfile getDecorated() { return decoratedCharacter; }
 

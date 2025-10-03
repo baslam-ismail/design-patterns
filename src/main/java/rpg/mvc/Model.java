@@ -1,19 +1,23 @@
 package rpg.mvc;
 
-import rpg.builder.CharacterBuilder;
-import rpg.core.*;
-import rpg.core.Character;
-import rpg.dao.CharacterDao;
-import rpg.decorator.*;
-import rpg.settings.GameSettings;
-import rpg.command.*;
-
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+
+import rpg.builder.CharacterBuilder;
+import rpg.command.BattleEngine;
+import rpg.command.Command;
+import rpg.core.Character;
+import rpg.core.CharacterProfile;
+import rpg.core.Party;
+import rpg.dao.CharacterDao;
+import rpg.decorator.FireResistance;
+import rpg.decorator.Invisibility;
+import rpg.decorator.Telepathy;
+import rpg.settings.GameSettings;
 
 public class Model {
     private final CharacterDao dao = new CharacterDao();
-    private final Party party = new Party();
+    private final Party party = new Party("Default Party");
 
     private List<Command> lastHistory = null; // historique du DERNIER combat
     private String lastNameA = null;
